@@ -2,27 +2,6 @@
 
 A modern web application for managing work logs, built with React, TypeScript, and Vite. This application provides an intuitive interface for tracking and managing work activities, time entries, and project progress.
 
-## 📸 Application Screenshots
-
-<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin: 20px 0;">
-  <div>
-    <img src="readme_images/Screenshot%202025-05-30%20at%2002.21.36.png" alt="Dashboard View" width="100%"/>
-    <p style="text-align: center;"><em>Main Dashboard - Overview of all activities and metrics</em></p>
-  </div>
-  <div>
-    <img src="readme_images/Screenshot%202025-05-30%20at%2002.21.46.png" alt="Time Tracking Interface" width="100%"/>
-    <p style="text-align: center;"><em>Time Tracking - Manage and log your work hours</em></p>
-  </div>
-  <div>
-    <img src="readme_images/Screenshot%202025-05-30%20at%2002.21.53.png" alt="Project Management View" width="100%"/>
-    <p style="text-align: center;"><em>Project Management - Track and manage project progress</em></p>
-  </div>
-  <div>
-    <img src="readme_images/Screenshot%202025-05-30%20at%2002.22.21.png" alt="Detailed Work Log View" width="100%"/>
-    <p style="text-align: center;"><em>Work Log Details - Comprehensive view of work entries</em></p>
-  </div>
-</div>
-
 ## ✨ Features
 
 - 📊 Interactive Dashboard
