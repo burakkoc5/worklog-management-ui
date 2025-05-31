@@ -1,17 +1,52 @@
-import axios from 'axios';
 import type { Page, Worklog, CreateWorklogDto, UpdateWorklogDto, Employee, Grade, WorklogType, CreateEmployeeDto, CreateGradeDto, CreateWorklogTypeDto } from '../types';
+import type { SortOption, WorklogEntriesSortOption } from '../types/dashboard';
+import { createThrottledAxiosInstance } from '../utils/requestThrottle';
 
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+const api = createThrottledAxiosInstance();
+api.defaults.baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+api.defaults.headers.common['Content-Type'] = 'application/json';
+
+const getSortField = (sortBy: SortOption | WorklogEntriesSortOption): string => {
+  switch (sortBy) {
+    case 'hours-asc':
+    case 'hours-desc':
+      return 'effort';
+    case 'name-asc':
+    case 'name-desc':
+      return 'employeeName';
+    case 'createdAt-asc':
+    case 'createdAt-desc':
+      return 'createdAt';
+    case 'updatedAt-asc':
+    case 'updatedAt-desc':
+      return 'updatedAt';
+    default:
+      return 'effort';
+  }
+};
 
 export const worklogApi = {
-  getAll: (page: number, size: number) => 
-    api.get<Page<Worklog>>(`/worklogs?page=${page}&size=${size}`),
+  getAll: (
+    page: number,
+    size: number,
+    sortBy: WorklogEntriesSortOption | null = null,
+    sortDirection: 'asc' | 'desc' | null = null
+  ) => 
+    api.get<Page<Worklog>>(
+      `/worklogs?page=${page}&size=${size}${sortBy ? `&sortBy=${getSortField(sortBy)}` : ''}${sortDirection ? `&sortDirection=${sortDirection}` : ''}`
+    ),
   
+  getByEmployeeId: (
+    employeeId: number,
+    page: number,
+    size: number,
+    sortBy: WorklogEntriesSortOption,
+    sortDirection: 'asc' | 'desc'
+  ) =>
+    api.get<Page<Worklog>>(
+      `/worklogs/employee/${employeeId}?page=${page}&size=${size}&sortBy=${getSortField(sortBy)}&sortDirection=${sortDirection}`
+    ),
+
   getById: (id: number) => 
     api.get<Worklog>(`/worklogs/${id}`),
   

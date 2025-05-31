@@ -9,11 +9,13 @@ import { employeeApi, worklogTypeApi, worklogApi } from '../api/client';
 import { createWorklogSchema, type CreateWorklogFormData } from '../schemas/worklog';
 import { format, subMonths } from 'date-fns';
 import { useState, useEffect } from 'react';
+import { LoadingState } from '../components/common/LoadingState';
+import { ErrorState } from '../components/common/ErrorState';
+
 
 export function WorklogForm() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [isMonthDropdownOpen, setIsMonthDropdownOpen] = useState(false);
   const [availableMonths, setAvailableMonths] = useState<string[]>([]);
 
   useEffect(() => {
@@ -91,6 +93,12 @@ export function WorklogForm() {
     formState: { errors },
   } = useForm<CreateWorklogFormData>({
     resolver: zodResolver(createWorklogSchema),
+    defaultValues: {
+      employeeId: 0,
+      monthDate: '',
+      worklogTypeId: 0,
+      effort: 0
+    }
   });
 
   const selectedEmployeeId = watch('employeeId');
@@ -108,32 +116,11 @@ export function WorklogForm() {
   const errorClasses = "mt-2 text-sm text-red-600";
 
   if (employeesLoading || worklogTypesLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
-      </div>
-    );
+    return <LoadingState size="medium" className="h-64" />;
   }
 
   if (employeesError || worklogTypesError) {
-    return (
-      <div className="rounded-md bg-red-50 p-4">
-        <div className="flex">
-          <div className="ml-3">
-            <h3 className="text-sm font-medium text-red-800">Error loading data</h3>
-            <div className="mt-2 text-sm text-red-700">
-              <p>Failed to load required data. Please try again later.</p>
-              <button
-                onClick={() => window.location.reload()}
-                className="mt-2 text-indigo-600 hover:text-indigo-500"
-              >
-                Retry
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <ErrorState message="Failed to load required data. Please try again later." onRetry={() => window.location.reload()} />;
   }
 
   return (

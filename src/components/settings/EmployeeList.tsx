@@ -13,11 +13,15 @@ export function EmployeeList({ employees, onEdit, onDelete }: EmployeeListProps)
         <div key={employee.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-md hover:bg-gray-100">
           <div>
             <div className="font-medium">{employee.firstName} {employee.lastName}</div>
-            <div className="text-sm text-gray-500">
-              Grade: {employee.gradeName} | Team Lead: {employee.teamLeadName} | Director: {employee.directorName}
+            <div className="text-sm text-gray-500 pr-4 min-w-0 flex-grow">
+              Grade: {employee.gradeName}
+              {employee.teamLeadName ? ` | Team Lead: ${employee.teamLeadName}` : ''}
+              {employee.directorName ? ` | Director: ${employee.directorName}` : ''}
+              {employee.startDate ? ` | Start Date: ${new Date(employee.startDate).toLocaleDateString()}` : ''}
+              {employee.endDate ? ` | End Date: ${new Date(employee.endDate).toLocaleDateString()}` : ''}
             </div>
           </div>
-          <div className="space-x-2">
+          <div className="space-x-2 flex-shrink-0">
             <button
               onClick={() => onEdit(employee.id)}
               className="px-3 py-1 text-sm text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded"

@@ -66,6 +66,8 @@ export interface Worklog {
   worklogTypeId: number;
   worklogTypeName: string;
   effort: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CreateWorklogDto {

@@ -35,13 +35,18 @@ export function MonthSelector({ value, onChange }: MonthSelectorProps) {
 
   const handleNextMonth = () => {
     const current = new Date(value);
-    current.setMonth(current.getMonth() + 1);
-    onChange(format(current, 'yyyy-MM'));
+    const currentDate = new Date();
+    const nextMonth = new Date(current);
+    nextMonth.setMonth(current.getMonth() + 1);
+    
+    if (nextMonth <= currentDate) {
+      onChange(format(nextMonth, 'yyyy-MM'));
+    }
   };
 
   return (
-    <div className="relative">
-      <div className="flex items-center space-x-4 bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5 p-2">
+    <div className="relative w-[200px]">
+      <div className="flex items-center justify-between bg-white rounded-lg shadow-sm ring-1 ring-gray-900/5 p-2">
         <button
           onClick={handlePreviousMonth}
           className="p-1 text-gray-400 hover:text-gray-500 focus:outline-none"
@@ -50,7 +55,7 @@ export function MonthSelector({ value, onChange }: MonthSelectorProps) {
         </button>
         <button
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className="text-sm font-medium text-gray-900 hover:text-indigo-600 focus:outline-none"
+          className="text-sm font-medium text-gray-900 hover:text-indigo-600 focus:outline-none flex-1 text-center"
         >
           {format(new Date(value), 'MMMM yyyy')}
         </button>

@@ -1,30 +1,32 @@
 import { useQuery } from '@tanstack/react-query';
-import { worklogApi } from '../api/client';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  LineChart,
-  Line,
-} from 'recharts';
-import { format } from 'date-fns';
+import { worklogApi, employeeApi } from '../api/client';
 import { MonthSelector } from '../components/MonthSelector';
 import { useMonth } from '../contexts/MonthContext';
-
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#8dd1e1'];
+import { KPICards } from '../components/analytics/KpiCards';
+import { EffortByRoleChart } from '../components/analytics/EffortByRoleChart';
+import { EffortByDirectorChart } from '../components/analytics/EffortByDirectorChart';
+import { EffortByTeamLeadChart } from '../components/analytics/EffortByTeamLeadChart';
+import { EffortByEmployeeChart } from '../components/analytics/EffortByEmployeeChart';
+import { EffortByTypeChart } from '../components/analytics/EffortByTypeChart';
+import { WorklogTypeTrendsChart } from '../components/analytics/WorklogTypeTrendsChart';
+import { WorklogTypeDistributionPerEmployeeChart } from '../components/analytics/WorklogTypeDistributionPerEmployeeChart';
+import { LoadingState } from '../components/common/LoadingState';
+import { ErrorState } from '../components/common/ErrorState';
+import {
+  calculateEffortByRole,
+  calculateWorklogTypeDistributionPerEmployee,
+  calculateEffortByTeamLead,
+  calculateEffortByDirector,
+  calculateEffortByEmployee,
+  calculateEffortByType,
+  calculateWorklogTypeTrends,
+  calculateKPIs,
+} from '../components/analytics/analyticsUtils';
 
 export function Analytics() {
   const { selectedMonth, setSelectedMonth } = useMonth();
 
-  const { data: worklogs = [], isLoading, error } = useQuery({
+  const { data: worklogs = [], isLoading: isLoadingWorklogs, error: errorWorklogs } = useQuery({
     queryKey: ['worklogs'],
     queryFn: async () => {
       const response = await worklogApi.getAll(0, 1000);
@@ -32,27 +34,23 @@ export function Analytics() {
     },
   });
 
+  const { data: employees = [], isLoading: isLoadingEmployees, error: errorEmployees } = useQuery({
+    queryKey: ['employees'],
+    queryFn: async () => {
+      const response = await employeeApi.getAll(0, 1000);
+      return response.data.content;
+    },
+  });
+
+  const isLoading = isLoadingWorklogs || isLoadingEmployees;
+  const error = errorWorklogs || errorEmployees;
+
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
-      </div>
-    );
+    return <LoadingState size="medium" className="h-64" />;
   }
 
   if (error) {
-    return (
-      <div className="rounded-md bg-red-50 p-4">
-        <div className="flex">
-          <div className="ml-3">
-            <h3 className="text-sm font-medium text-red-800">Error loading data</h3>
-            <div className="mt-2 text-sm text-red-700">
-              <p>Failed to load analytics data. Please try again later.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <ErrorState message="Failed to load analytics data. Please try again later." />;
   }
 
   // Filter worklogs by selected month
@@ -65,43 +63,47 @@ export function Analytics() {
     );
   });
 
-  // Prepare data for charts
-  const effortByEmployee = filteredWorklogs.reduce((acc: any[], worklog) => {
-    const existing = acc.find(item => item.name === worklog.employeeName);
-    if (existing) {
-      existing.effort += worklog.effort;
-    } else {
-      acc.push({ name: worklog.employeeName, effort: worklog.effort });
-    }
-    return acc;
-  }, []);
+  // Get all unique worklog types
+  const uniqueWorklogTypes = Array.from(new Set(worklogs.map(worklog => worklog.worklogTypeName)));
 
-  const effortByType = filteredWorklogs.reduce((acc: any[], worklog) => {
-    const existing = acc.find(item => item.name === worklog.worklogTypeName);
-    if (existing) {
-      existing.value += worklog.effort;
-    } else {
-      acc.push({ name: worklog.worklogTypeName, value: worklog.effort });
-    }
-    return acc;
-  }, []);
+  // Join worklogs with employee data
+  const worklogsWithEmployeeData = filteredWorklogs.map(worklog => {
+    const employee = employees.find(emp => emp.firstName + ' ' + emp.lastName === worklog.employeeName);
+    return {
+      ...worklog,
+      gradeName: employee?.gradeName,
+      teamLeadName: employee?.teamLeadName,
+      directorName: employee?.directorName,
+    };
+  });
 
-  const effortByMonth = worklogs.reduce((acc: any[], worklog) => {
-    const month = format(new Date(worklog.monthDate), 'MMM yyyy');
-    const existing = acc.find(item => item.month === month);
-    if (existing) {
-      existing.effort += worklog.effort;
-    } else {
-      acc.push({ 
-        month, 
-        effort: worklog.effort,
-        date: new Date(worklog.monthDate)
-      });
-    }
-    return acc;
-  }, [])
-  .sort((a, b) => a.date.getTime() - b.date.getTime())
-  .map(({ month, effort }) => ({ month, effort }));
+  // Calculate data for charts
+  const effortByRole = calculateEffortByRole(worklogsWithEmployeeData);
+  const worklogTypeDistributionPerEmployee = calculateWorklogTypeDistributionPerEmployee(
+    worklogsWithEmployeeData,
+    uniqueWorklogTypes
+  );
+  const effortByTeamLead = calculateEffortByTeamLead(worklogsWithEmployeeData);
+  const effortByDirector = calculateEffortByDirector(worklogsWithEmployeeData);
+  const effortByEmployee = calculateEffortByEmployee(filteredWorklogs);
+  const effortByType = calculateEffortByType(filteredWorklogs);
+
+  // Calculate KPIs
+  const { totalHours, averageHoursPerEmployee, mostCommonWorklogType } = calculateKPIs(filteredWorklogs);
+
+  // Calculate worklog type trends over the last 3 months
+  const threeMonthsAgo = new Date();
+  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 2);
+  threeMonthsAgo.setDate(1);
+  threeMonthsAgo.setHours(0, 0, 0, 0);
+
+  const worklogsLast3Months = worklogs.filter(worklog => {
+    const worklogDate = new Date(worklog.monthDate);
+    return worklogDate >= threeMonthsAgo;
+  });
+
+  const worklogTypeTrends = calculateWorklogTypeTrends(worklogsLast3Months);
+  const uniqueWorklogTypesLast3Months = Array.from(new Set(worklogsLast3Months.map(worklog => worklog.worklogTypeName)));
 
   return (
     <div className="space-y-8">
@@ -125,67 +127,35 @@ export function Analytics() {
         </div>
       ) : (
         <>
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-4">Effort Distribution by Employee</h2>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={effortByEmployee}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip formatter={(value) => [`${value} hrs`, 'Effort']} />
-                  <Legend />
-                  <Bar dataKey="effort" fill="#8884d8" name="Effort (hrs)" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+          <KPICards
+            totalHours={totalHours}
+            averageHoursPerEmployee={averageHoursPerEmployee}
+            mostCommonWorklogType={mostCommonWorklogType}
+          />
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <EffortByRoleChart data={effortByRole} />
+            <EffortByDirectorChart data={effortByDirector} />
+            <EffortByTeamLeadChart data={effortByTeamLead} />
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-4">Effort Distribution by Worklog Type</h2>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={effortByType}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, value }) => `${name} (${value} hrs)`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {effortByType.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => [`${value} hrs`, 'Effort']} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+          <div className="grid grid-cols-1 mb-8">
+            <EffortByEmployeeChart data={effortByEmployee} />
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-4">Effort Trends Over Time</h2>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={effortByMonth}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip formatter={(value) => [`${value} hrs`, 'Effort']} />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="effort"
-                    stroke="#8884d8"
-                    name="Total Effort (hrs)"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <EffortByTypeChart data={effortByType} />
+            <WorklogTypeTrendsChart
+              data={worklogTypeTrends}
+              uniqueWorklogTypes={uniqueWorklogTypesLast3Months}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 mb-8">
+            <WorklogTypeDistributionPerEmployeeChart
+              data={worklogTypeDistributionPerEmployee}
+              uniqueWorklogTypes={uniqueWorklogTypes}
+            />
           </div>
         </>
       )}

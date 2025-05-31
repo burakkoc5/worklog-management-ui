@@ -12,8 +12,8 @@ import {
   groupByEmployee,
   groupByTeamLead,
   groupByDirector,
-  sortData,
-  filterData
+  filterData,
+  sortData
 } from '../utils/dashboardUtils';
 
 function classNames(...classes: string[]) {
@@ -38,9 +38,15 @@ export function Dashboard() {
   const [sortBy, setSortBy] = React.useState<SortOption>('hours-desc');
   const [selectedWorklogType, setSelectedWorklogType] = React.useState<string | null>(null);
 
+  const getSortDirection = (sortBy: SortOption): 'asc' | 'desc' => {
+    if (sortBy.includes('asc')) return 'asc';
+    if (sortBy.includes('desc')) return 'desc';
+    return 'asc'; // Default
+  };
+
   const { data: worklogs, isLoading: worklogsLoading, error: worklogsError } = useQuery({
     queryKey: ['worklogs'],
-    queryFn: () => worklogApi.getAll(0, 1000).then(res => res.data.content),
+    queryFn: () => worklogApi.getAll(0, 1000, sortBy, getSortDirection(sortBy)).then(res => res.data.content),
     retry: 1,
   });
 
@@ -104,7 +110,8 @@ export function Dashboard() {
 
   // Process data with sorting and filtering
   const processData = (data: any[]) => {
-    return sortData(filterData(data, selectedWorklogType), sortBy);
+    const filteredData = filterData(data, selectedWorklogType);
+    return sortData(filteredData, sortBy);
   };
 
   const tabs: TabConfig[] = [
@@ -126,13 +133,13 @@ export function Dashboard() {
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 px-4 sm:px-6 lg:px-8">
       <DashboardHeader selectedMonth={selectedMonth} setSelectedMonth={setSelectedMonth} />
 
       <Tab.Group>
         <div className="flex items-center justify-between">
-          <div className="flex items-center justify-between w-full">
-            <Tab.List className="flex space-x-1 rounded-xl bg-gray-100 p-1">
+          <div className="flex items-center justify-between w-full flex-col sm:flex-row">
+            <Tab.List className="flex space-x-1 rounded-xl bg-gray-100 p-1 flex-col sm:flex-row sm:space-x-1 space-y-1 sm:space-y-0 w-full sm:w-auto">
               {tabs.map((tab) => (
                 <Tab
                   key={tab.name}
@@ -153,11 +160,11 @@ export function Dashboard() {
             </Tab.List>
 
             <DashboardFilters
-              selectedWorklogType={selectedWorklogType}
-              setSelectedWorklogType={setSelectedWorklogType}
+              selectedValue={selectedWorklogType}
+              setSelectedValue={setSelectedWorklogType}
               sortBy={sortBy}
               setSortBy={setSortBy}
-              allWorklogTypes={allWorklogTypes}
+              allOptions={allWorklogTypes}
             />
           </div>
         </div>

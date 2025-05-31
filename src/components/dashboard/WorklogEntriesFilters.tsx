@@ -1,24 +1,24 @@
 import { Menu } from '@headlessui/react';
 import { ChevronDownIcon, FunnelIcon, ArrowsUpDownIcon } from '@heroicons/react/20/solid';
-import type { SortOption } from '../../types/dashboard';
+import type { WorklogEntriesSortOption } from '../../types/dashboard';
 
-interface DashboardFiltersProps {
+interface WorklogEntriesFiltersProps {
   selectedValue: string | null;
   setSelectedValue: (value: string | null) => void;
-  sortBy: SortOption;
-  setSortBy: (sort: SortOption) => void;
+  sortBy: WorklogEntriesSortOption;
+  setSortBy: (sort: WorklogEntriesSortOption) => void;
   allOptions: string[];
   filterLabel?: string; // Optional prop for the filter dropdown label
 }
 
-export function DashboardFilters({
+export function WorklogEntriesFilters({
   selectedValue,
   setSelectedValue,
   sortBy,
   setSortBy,
   allOptions,
   filterLabel = 'All', // Default label is 'All'
-}: DashboardFiltersProps) {
+}: WorklogEntriesFiltersProps) {
   return (
     <div className="flex items-center gap-3">
       {/* Active Filter Display */}
@@ -43,7 +43,11 @@ export function DashboardFilters({
           <span className="text-sm text-indigo-700">
             {sortBy === 'hours-asc' ? 'Hours (Low to High)' :
              sortBy === 'name-asc' ? 'Name (A to Z)' :
-             'Name (Z to A)'}
+             sortBy === 'name-desc' ? 'Name (Z to A)' :
+             sortBy === 'createdAt-asc' ? 'Created At (Old to New)' :
+             sortBy === 'createdAt-desc' ? 'Created At (New to Old)' :
+             sortBy === 'updatedAt-asc' ? 'Updated At (Old to New)' :
+             'Updated At (New to Old)'}
           </span>
           <button
             onClick={() => setSortBy('hours-desc')}
@@ -159,6 +163,62 @@ export function DashboardFilters({
                     }`}
                   >
                     Name (Z to A)
+                  </button>
+                )}
+              </Menu.Item>
+              <Menu.Item>
+                {({ active }) => (
+                  <button
+                    onClick={() => setSortBy('createdAt-asc')}
+                    className={`${
+                      active ? 'bg-gray-100 text-gray-900' : 'text-gray-700'
+                    } block w-full px-4 py-2 text-left text-sm ${
+                      sortBy === 'createdAt-asc' ? 'bg-indigo-50 text-indigo-700' : ''
+                    }`}
+                  >
+                    Created At (Old to New)
+                  </button>
+                )}
+              </Menu.Item>
+              <Menu.Item>
+                {({ active }) => (
+                  <button
+                    onClick={() => setSortBy('createdAt-desc')}
+                    className={`${
+                      active ? 'bg-gray-100 text-gray-900' : 'text-gray-700'
+                    } block w-full px-4 py-2 text-left text-sm ${
+                      sortBy === 'createdAt-desc' ? 'bg-indigo-50 text-indigo-700' : ''
+                    }`}
+                  >
+                    Created At (New to Old)
+                  </button>
+                )}
+              </Menu.Item>
+              <Menu.Item>
+                {({ active }) => (
+                  <button
+                    onClick={() => setSortBy('updatedAt-asc')}
+                    className={`${
+                      active ? 'bg-gray-100 text-gray-900' : 'text-gray-700'
+                    } block w-full px-4 py-2 text-left text-sm ${
+                      sortBy === 'updatedAt-asc' ? 'bg-indigo-50 text-indigo-700' : ''
+                    }`}
+                  >
+                    Updated At (Old to New)
+                  </button>
+                )}
+              </Menu.Item>
+              <Menu.Item>
+                {({ active }) => (
+                  <button
+                    onClick={() => setSortBy('updatedAt-desc')}
+                    className={`${
+                      active ? 'bg-gray-100 text-gray-900' : 'text-gray-700'
+                    } block w-full px-4 py-2 text-left text-sm ${
+                      sortBy === 'updatedAt-desc' ? 'bg-indigo-50 text-indigo-700' : ''
+                    }`}
+                  >
+                    Updated At (New to Old)
                   </button>
                 )}
               </Menu.Item>

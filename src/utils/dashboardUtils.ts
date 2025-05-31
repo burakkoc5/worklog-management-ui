@@ -23,7 +23,8 @@ export function groupByEmployee(employees: any[], filteredWorklogs: any[]): Reco
       totalEffort: employeeEffort,
       worklogs: employeeWorklogs,
       role: getEmployeeRole(employee, employees),
-      gradeName: employee.gradeName
+      gradeName: employee.gradeName,
+      endDate: employee.endDate
     };
     return acc;
   }, {} as Record<number, GroupedData>);
@@ -49,7 +50,8 @@ export function groupByTeamLead(employees: any[], filteredWorklogs: any[]): Reco
           children: [],
           leaderEffort: 0,
           leaderWorklogSummary: [],
-          gradeName: employee.gradeName
+          gradeName: employee.gradeName,
+          endDate: employee.endDate
         };
       }
       
@@ -78,7 +80,8 @@ export function groupByTeamLead(employees: any[], filteredWorklogs: any[]): Reco
           totalEffort: 0,
           worklogs: [],
           children: [],
-          gradeName: leader?.gradeName
+          gradeName: leader?.gradeName,
+          endDate: leader?.endDate
         };
       }
       
@@ -89,7 +92,8 @@ export function groupByTeamLead(employees: any[], filteredWorklogs: any[]): Reco
         totalEffort: employeeEffort,
         worklogs: employeeWorklogs,
         role: getEmployeeRole(employee, employees),
-        gradeName: employee.gradeName
+        gradeName: employee.gradeName,
+        endDate: employee.endDate
       });
     }
     
@@ -114,7 +118,8 @@ export function groupByDirector(employees: any[], filteredWorklogs: any[]): Reco
           children: [],
           leaderEffort: 0,
           leaderWorklogSummary: [],
-          gradeName: employee.gradeName
+          gradeName: employee.gradeName,
+          endDate: employee.endDate
         };
       }
 
@@ -143,7 +148,8 @@ export function groupByDirector(employees: any[], filteredWorklogs: any[]): Reco
           totalEffort: 0,
           worklogs: [],
           children: [],
-          gradeName: director?.gradeName
+          gradeName: director?.gradeName,
+          endDate: director?.endDate
         };
       }
       
@@ -155,7 +161,8 @@ export function groupByDirector(employees: any[], filteredWorklogs: any[]): Reco
         totalEffort: employeeEffort,
         worklogs: employeeWorklogs,
         role: getEmployeeRole(employee, employees),
-        gradeName: employee.gradeName
+        gradeName: employee.gradeName,
+        endDate: employee.endDate
       });
     }
     
