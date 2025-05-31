@@ -15,8 +15,38 @@ const getSortDirection = (sortBy: WorklogEntriesSortOption): 'asc' | 'desc' => {
   return 'asc'; // Default
 };
 
+// Helper for client-side sorting
+const sortWorklogs = (worklogs: Worklog[], sortBy: WorklogEntriesSortOption): Worklog[] => {
+  const direction = getSortDirection(sortBy);
+  const [key] = sortBy.split('-'); 
+
+  // Map the sort key 'name' to the actual property 'employeeName'
+  const sortKey = key === 'name' ? 'employeeName' : key;
+
+  return [...worklogs].sort((a, b) => {
+    const aValue = a[sortKey as keyof Worklog];
+    const bValue = b[sortKey as keyof Worklog];
+
+    if (aValue === null || aValue === undefined) return direction === 'asc' ? 1 : -1;
+    if (bValue === null || bValue === undefined) return direction === 'asc' ? -1 : 1;
+
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
+      return direction === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
+    }
+
+    if (aValue < bValue) {
+      return direction === 'asc' ? -1 : 1;
+    }
+    if (aValue > bValue) {
+      return direction === 'asc' ? 1 : -1;
+    }
+    return 0;
+  });
+};
+
 export function WorklogEntries() {
-  const [worklogs, setWorklogs] = useState<Worklog[]>([]);
+  const [allWorklogs, setAllWorklogs] = useState<Worklog[]>([]); // State to store all fetched worklogs
+  const [displayedWorklogs, setDisplayedWorklogs] = useState<Worklog[]>([]); // State for worklogs on the current page
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]); // State to store all employees
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -31,32 +61,32 @@ export function WorklogEntries() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(0);
 
-  // Fetch worklogs for the current page with filtering and sorting
-  const fetchWorklogs = async (page: number, size: number, currentSortBy: WorklogEntriesSortOption) => {
+  // Fetch all worklogs with optional employee filter
+  const fetchAllWorklogs = async (currentSelectedEmployee: string | null) => {
     try {
-      const sortDirection = getSortDirection(currentSortBy);
       let response;
+      const size = 1000; // Fetch a large number of worklogs
+      const defaultSortBy: WorklogEntriesSortOption = 'createdAt-desc'; // Default sort for initial fetch
+      const defaultSortDirection = getSortDirection(defaultSortBy); // Get direction for the default sort
 
-      if (selectedEmployee) {
-        // Find the selected employee's ID
-        const employee = allEmployees.find(emp => `${emp.firstName} ${emp.lastName}` === selectedEmployee);
+      if (currentSelectedEmployee) {
+        const employee = allEmployees.find(emp => `${emp.firstName} ${emp.lastName}` === currentSelectedEmployee);
         if (employee) {
-          response = await worklogApi.getByEmployeeId(employee.id, page, size, currentSortBy, sortDirection);
+          // When filtering by employee, the backend might still paginate, so we fetch a large chunk
+          response = await worklogApi.getByEmployeeId(employee.id, 0, size, defaultSortBy, defaultSortDirection); // Fetching a large size, sort parameters here are less critical as we sort client-side
         } else {
-          // If employee not found in allEmployees (shouldn't happen if filter is populated correctly), clear worklogs
-          setWorklogs([]);
-          setTotalPages(0);
+          setAllWorklogs([]);
           return;
         }
       } else {
-        response = await worklogApi.getAll(page, size, currentSortBy, sortDirection);
+        // Fetch all worklogs without employee filter
+        response = await worklogApi.getAll(0, size, defaultSortBy, defaultSortDirection); // Fetching a large size, sort parameters here are less critical as we sort client-side
       }
-      
-      setWorklogs(response.data.content);
-      setTotalPages(response.data.totalPages);
+
+      setAllWorklogs(response.data.content);
     } catch (error) {
-      console.error('Error fetching worklogs:', error);
-      toast.error('Failed to fetch worklogs');
+      console.error('Error fetching all worklogs:', error);
+      toast.error('Failed to fetch all worklogs');
     }
   };
 
@@ -73,12 +103,22 @@ export function WorklogEntries() {
   };
 
   useEffect(() => {
-    fetchWorklogs(currentPage, itemsPerPage, sortBy);
-  }, [currentPage, itemsPerPage, selectedEmployee, sortBy]); // Depend on pagination state, selectedEmployee, and sortBy
-
-  useEffect(() => {
     fetchAllEmployees(); // Fetch all employees when component mounts
   }, []);
+
+  // Fetch all worklogs whenever the selected employee filter changes
+  useEffect(() => {
+    fetchAllWorklogs(selectedEmployee);
+  }, [selectedEmployee, allEmployees]); // Depend on selectedEmployee and allEmployees to ensure employee data is available
+
+  // Apply sorting and pagination whenever allWorklogs, sortBy, currentPage, or itemsPerPage changes
+  useEffect(() => {
+    const sortedWorklogs = sortWorklogs(allWorklogs, sortBy);
+    const startIndex = currentPage * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    setDisplayedWorklogs(sortedWorklogs.slice(startIndex, endIndex));
+    setTotalPages(Math.ceil(sortedWorklogs.length / itemsPerPage));
+  }, [allWorklogs, sortBy, currentPage, itemsPerPage]);
 
   const handleEdit = (worklog: Worklog) => {
     setFormData(worklog);
@@ -97,7 +137,8 @@ export function WorklogEntries() {
     try {
       await worklogApi.delete(worklogToDelete);
       toast.success('Worklog deleted successfully');
-      fetchWorklogs(currentPage, itemsPerPage, sortBy);
+      // After deletion, refetch all worklogs to update the list
+      fetchAllWorklogs(selectedEmployee);
     } catch (error) {
       console.error('Error deleting worklog:', error);
       toast.error('Failed to delete worklog');
@@ -113,7 +154,8 @@ export function WorklogEntries() {
       setIsEditing(false);
       setEditingId(null);
       setFormData({});
-      fetchWorklogs(currentPage, itemsPerPage, sortBy); // Refresh data after update
+      // After update, refetch all worklogs to update the list
+      fetchAllWorklogs(selectedEmployee);
     } catch (error) {
       console.error('Error updating worklog:', error);
       toast.error('Failed to update worklog');
@@ -228,8 +270,8 @@ export function WorklogEntries() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {worklogs.length > 0 ? (
-                  worklogs.map((worklog) => (
+                {displayedWorklogs.length > 0 ? (
+                  displayedWorklogs.map((worklog) => (
                     <tr key={worklog.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">{worklog.employeeName}</div>
